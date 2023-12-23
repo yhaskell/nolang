@@ -6,12 +6,12 @@ use std::{fs::File, io::Read};
 #[derive(Debug)]
 pub struct SourceCode {
   pub code: String,
-  lines: Vec<usize>,
+  line_breaks: Vec<usize>,
 }
 
 impl SourceCode {
   pub fn new(code: String) -> SourceCode {
-    let mut lines = vec![0];
+    let mut lines = vec![];
     let mut position: usize = 0;
 
     for ch in code.chars() {
@@ -22,7 +22,10 @@ impl SourceCode {
       position += 1;
     }
 
-    SourceCode { code, lines }
+    SourceCode {
+      code,
+      line_breaks: lines,
+    }
   }
 
   pub fn from_file(filename: String) -> Result<SourceCode, std::io::Error> {
@@ -34,28 +37,32 @@ impl SourceCode {
     Ok(SourceCode::new(contents))
   }
 
-  pub fn to_position(&self, location: Location) -> Option<usize> {
-    let line_start = self.lines.get(location.line)?;
-
-    Some(line_start + location.pos)
-  }
-
   pub fn to_location(&self, position: usize) -> Option<Location> {
     if position > self.code.len() {
       return None;
     }
 
-    let line = match self.lines.binary_search(&position) {
-      Ok(n) => n,
+    let line = match self.line_breaks.binary_search(&position) {
+      Ok(n) => n + 1,
       Err(n) => n,
     };
 
-    Some(Location::new(line, position - line))
+    let lb = if line == 0 {
+      0
+    } else {
+      self.line_breaks[line - 1]
+    };
+
+    Some(Location::new(position, line, position - lb))
   }
 
   pub fn get_line(&self, line: usize) -> Option<String> {
-    let line_start = *self.lines.get(line)?;
-    let line_end = self.lines.get(line + 1).map_or(self.code.len(), |e| *e);
+    let line_start = if line == 0 {
+      0
+    } else {
+      *self.line_breaks.get(line - 1)?
+    };
+    let line_end = self.line_breaks.get(line).map_or(self.code.len(), |e| *e);
 
     Some(self.code[line_start..line_end].trim().to_string())
   }
@@ -87,7 +94,8 @@ mod test {
     let code = "line 1\nline 2\n\nline 3".to_string();
     let sc = SourceCode::new(code);
 
-    assert_eq!(sc.lines.len(), 4);
+    // since there are 4 lines, there should be 3 line breaks
+    assert_eq!(sc.line_breaks.len(), 3);
   }
 
   #[test]
