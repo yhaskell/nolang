@@ -37,20 +37,23 @@ impl Tokeniser {
   {
     let code = &self.source_code.code;
 
-    let begin = match code.char_indices().nth(self.current_token_start) {
-      Some((c, _)) => c,
-      None => code.len(),
-    };
-    let end = match code.char_indices().nth(self.position) {
-      Some((c, _)) => c,
-      None => code.len(),
-    };
+    macro_rules! nth_indices {
+      ($n: expr) => {
+        match code.char_indices().nth($n) {
+          Some((c, _)) => c,
+          None => code.len(),
+        }
+      };
+    }
+
+    let from = nth_indices!(self.current_token_start);
+    let to = nth_indices!(self.position);
 
     let start = self.source_code.to_location(self.current_token_start).unwrap();
-    let endl = self.source_code.to_location(self.position).unwrap();
+    let end = self.source_code.to_location(self.position).unwrap();
 
-    let value = value(code[begin..end].to_string());
-    Token::new(value, start, endl)
+    let value = value(code[from..to].to_string());
+    Token::new(value, start, end)
   }
 
   pub fn consume_identifier(self: &mut Self) -> Token {
