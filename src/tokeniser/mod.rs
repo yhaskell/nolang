@@ -95,9 +95,9 @@ impl Tokeniser {
 
     self.position += 1;
 
-    match closed {
-      false => self.commit_token(|s| TokenValue::Error(s, ErrorCode::UnterminatedCharLiteral)),
-      true => self.commit_token(|s| match s.chars().count() {
+    self.commit_token(|s| match closed {
+      false => TokenValue::Error(s, ErrorCode::UnterminatedCharLiteral),
+      true => match s.chars().count() {
         0 | 1 => unreachable!("Cannot happen"),
         2 => TokenValue::Error(s, ErrorCode::EmptyCharLiteral),
         3 => TokenValue::CharLiteral(s.chars().nth(1).unwrap()),
@@ -111,8 +111,8 @@ impl Tokeniser {
             }
           }
         },
-      }),
-    }
+      },
+    })
   }
 
   pub fn consume_string_literal(self: &mut Self) -> Token {
@@ -198,11 +198,13 @@ impl Tokeniser {
       self.position += 1;
     }
 
-    if trie.is_leaf() {
-      self.commit_token(|s| TokenValue::Operator(s))
-    } else {
-      self.commit_token(|s| TokenValue::Error(s, ErrorCode::UnexpectedToken))
-    }
+    self.commit_token(|s| {
+      if trie.is_leaf() {
+        TokenValue::Operator(s)
+      } else {
+        TokenValue::Error(s, ErrorCode::UnexpectedToken)
+      }
+    })
   }
 
   pub fn consume_number_or_dot(self: &mut Self) -> Token {
