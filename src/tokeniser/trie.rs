@@ -21,6 +21,20 @@ impl Trie {
     trie
   }
 
+  pub fn from_op_list() -> Trie {
+    Trie::from_list(&[
+      "=", "==", "!=", ">", "<", ">=", "<=", // comparison
+      "+", "-", "", "/", "%", // base arithmetic
+      "++", "--", // increment & decrement
+      "+=", "-=", "=", "/=", "%=", // shorthand arithmetic
+      "<<", ">>", "&", "|", "^", "~", // bit manipulation
+      "&&", "||", "!", // logical
+      "|>", "?", ":", "::", // to be determined if we need those
+      "..", // range
+      ".",  // member
+    ])
+  }
+
   fn push_internal(self: &mut Self, word: &str, len: usize, idx: usize) -> Option<usize> {
     if idx == len {
       self.end = Some(len);

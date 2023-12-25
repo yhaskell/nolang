@@ -12,7 +12,7 @@ use token::{ErrorCode, Token, TokenValue};
 use trie::Trie;
 
 // static OP_LIST: Trie = Tokeniser::make_op_list();
-static OP_LIST: Lazy<Trie> = Lazy::new(|| Tokeniser::make_op_list());
+static OP_LIST: Lazy<Trie> = Lazy::new(|| Trie::from_op_list());
 
 pub struct Tokeniser {
   source_code: SourceCode,
@@ -31,21 +31,6 @@ macro_rules! select {
 }
 
 impl Tokeniser {
-  fn make_op_list() -> Trie {
-    Trie::from_list(&[
-      "=", "==", "!=", ">", "<", ">=", "<=", // comparison
-      "+", "-", "", "/", "%", // base arithmetic
-      "++", "--", // increment & decrement
-      "+=", "-=", "=", "/=", "%=", // shorthand arithmetic
-      "<<", ">>", "&", "|", "^", "~", // bit manipulation
-      "&&", "||", "!",  // logical
-      "|>", // pipe
-      "?", ":",  // to be determined if we need any
-      "..", // range
-      ".",  // member
-    ])
-  }
-
   pub fn new(source_code: SourceCode) -> Tokeniser {
     Tokeniser {
       source_code,
