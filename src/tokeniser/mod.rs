@@ -31,6 +31,10 @@ impl Tokeniser {
     self.current_token_start = self.position;
   }
 
+  pub fn get_char(&self, position: usize) -> Option<char> {
+    self.source_code.code.chars().nth(position)
+  }
+
   pub fn commit_token<F>(self: &mut Self, value: F) -> Token
   where
     F: FnOnce(String) -> TokenValue,
@@ -67,10 +71,6 @@ impl Tokeniser {
     }
 
     self.commit_token(|s| TokenValue::Identifier(s))
-  }
-
-  pub fn get_char(&self, position: usize) -> Option<char> {
-    self.source_code.code.chars().nth(position)
   }
 
   pub fn consume_char_literal(self: &mut Self) -> Token {
