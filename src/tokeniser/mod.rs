@@ -1,12 +1,13 @@
 #[cfg(test)]
 mod test;
 
+mod parsers;
 mod token;
 mod trie;
 
 use crate::source_code::SourceCode;
 use once_cell::sync::Lazy;
-use std::str::FromStr;
+
 use token::{ErrorCode, Token, TokenValue};
 
 use trie::Trie;
@@ -20,16 +21,6 @@ pub struct Tokeniser {
   current_token_start: usize,
 }
 
-macro_rules! select {
-  ($ch: expr, $success: literal, $failure: literal) => {
-    if $ch == '"' {
-      $success
-    } else {
-      $failure
-    }
-  };
-}
-
 impl Tokeniser {
   pub fn new(source_code: SourceCode) -> Tokeniser {
     Tokeniser {
@@ -37,55 +28,6 @@ impl Tokeniser {
       position: 0,
       current_token_start: 0,
     }
-  }
-
-  pub fn parse_symbol_in_string(
-    s: &str,
-    pos: usize,
-    parse_unicode: bool,
-  ) -> Result<(char, usize), ErrorCode> {
-    match s.chars().nth(pos) {
-      None => Err(ErrorCode::BrokenStringLiteral),
-      Some('\\') => match s.chars().nth(pos + 1) {
-        None => Err(ErrorCode::UnterminatedCharLiteral),
-        Some(c) => match c {
-          'n' => Ok(('\n', pos + 2)),
-          'r' => Ok(('\r', pos + 2)),
-          't' => Ok(('\t', pos + 2)),
-          '\'' => Ok(('\'', pos + 2)),
-          '\\' => Ok(('\\', pos + 2)),
-          'u' if !parse_unicode || s.len() < pos + 6 => Err(ErrorCode::BrokenUnicodeSequence),
-          'u' => match u32::from_str_radix(&s[pos + 2..pos + 6], 16) {
-            Err(_) => Err(ErrorCode::BrokenUnicodeSequence),
-            Ok(u) => match char::from_u32(u) {
-              Some(c) => Ok((c, pos + 6)),
-              None => Err(ErrorCode::BrokenUnicodeSequence),
-            },
-          },
-          _ => Err(ErrorCode::UnknownEscapeSequence),
-        },
-      },
-      Some(c) => Ok((c, pos + 1)),
-    }
-  }
-
-  pub fn parse_string(s: String) -> Result<String, ErrorCode> {
-    let mut result = String::new();
-
-    let len = s.len();
-    let mut pos = 0;
-    while pos < len {
-      match Tokeniser::parse_symbol_in_string(&s, pos, true) {
-        Err(e) => {
-          return Err(e);
-        }
-        Ok((c, next)) => {
-          result.push(c);
-          pos = next;
-        }
-      };
-    }
-    Ok(result)
   }
 
   pub fn is_bracket(c: char) -> bool {
@@ -101,29 +43,6 @@ impl Tokeniser {
 
   pub fn is_punctuation_or_whitespace(c: char) -> bool {
     return c.is_whitespace() || Tokeniser::is_punctuation(c);
-  }
-
-  pub fn parse_int(self: &mut Self, radix: u32) -> Token {
-    self.commit_token(|s| {
-      match u128::from_str_radix(
-        if radix == 16 {
-          &s.trim_start_matches("0x")
-        } else {
-          &s
-        },
-        radix,
-      ) {
-        Ok(n) => TokenValue::IntLiteral(n),
-        _ => TokenValue::Error(s, ErrorCode::IntLiteralTooLong),
-      }
-    })
-  }
-
-  pub fn parse_float(self: &mut Self) -> Token {
-    self.commit_token(|s| match f64::from_str(&s) {
-      Ok(n) => TokenValue::FloatLiteral(n),
-      _ => TokenValue::Error(s, ErrorCode::FloatLiteralTooLong),
-    })
   }
 
   pub fn start_token(self: &mut Self) {
@@ -203,7 +122,7 @@ impl Tokeniser {
         0 | 1 => unreachable!("Cannot happen"),
         2 => TokenValue::Error(s, ErrorCode::EmptyCharLiteral),
         3 => TokenValue::CharLiteral(s.chars().nth(1).unwrap()),
-        len => match Tokeniser::parse_symbol_in_string(&s, 1, true) {
+        len => match parsers::parse_symbol_in_string(&s, 1, true) {
           Err(e) => TokenValue::Error(s, e),
           Ok((c, next)) => {
             if next + 1 < len {
@@ -218,6 +137,16 @@ impl Tokeniser {
   }
 
   pub fn consume_string_literal(self: &mut Self) -> Token {
+    macro_rules! select {
+      ($ch: expr, $success: literal, $failure: literal) => {
+        if $ch == '"' {
+          $success
+        } else {
+          $failure
+        }
+      };
+    }
+
     self.start_token();
     let mut state = 0;
 
@@ -245,7 +174,7 @@ impl Tokeniser {
     match state {
       7 | 9 | 11 => {
         self.commit_token(
-          |s| match Tokeniser::parse_string(s.trim_matches('\"').to_string()) {
+          |s| match parsers::parse_string(s.trim_matches('\"').to_string()) {
             Ok(s) => TokenValue::StringLiteral(s),
             Err(e) => TokenValue::Error(s, e),
           },
@@ -411,15 +340,15 @@ impl Tokeniser {
       return self.restore();
     }
 
-    match state {
-      1 | 7 => self.commit_token(|_| TokenValue::IntLiteral(0)),
-      2 => self.parse_int(10),
-      3 => self.commit_token(|_| TokenValue::Operator(".".to_string())),
-      4 => self.parse_int(8),
-      5 => self.parse_float(),
-      8 => self.parse_int(16),
-      _ => self.commit_token(|s| TokenValue::Error(s, ErrorCode::UnexpectedToken)),
-    }
+    self.commit_token(match state {
+      1 | 7 => |_| TokenValue::IntLiteral(0),
+      2 => |s| parsers::parse_int(s, 10),
+      3 => |_| TokenValue::Operator(".".to_string()),
+      4 => |s| parsers::parse_int(s, 8),
+      5 => parsers::parse_float,
+      8 => |s| parsers::parse_int(s, 16),
+      _ => |s| TokenValue::Error(s, ErrorCode::UnexpectedToken),
+    })
   }
 
   pub fn parse(self: &mut Self) -> Vec<Token> {
