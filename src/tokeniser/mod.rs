@@ -1,19 +1,16 @@
 #[cfg(test)]
 mod test;
 
+mod check;
 mod parsers;
 mod token;
 mod trie;
 
 use crate::source_code::SourceCode;
-use once_cell::sync::Lazy;
 
 use token::{ErrorCode, Token, TokenValue};
 
 use trie::Trie;
-
-// static OP_LIST: Trie = Tokeniser::make_op_list();
-static OP_LIST: Lazy<Trie> = Lazy::new(|| Trie::from_op_list());
 
 pub struct Tokeniser {
   source_code: SourceCode,
@@ -30,21 +27,6 @@ impl Tokeniser {
     }
   }
 
-  pub fn is_bracket(c: char) -> bool {
-    match c {
-      '(' | ')' | '[' | ']' | '{' | '}' => true,
-      _ => false,
-    }
-  }
-
-  pub fn is_punctuation(c: char) -> bool {
-    OP_LIST.has_start(c)
-  }
-
-  pub fn is_punctuation_or_whitespace(c: char) -> bool {
-    return c.is_whitespace() || Tokeniser::is_punctuation(c);
-  }
-
   pub fn start_token(self: &mut Self) {
     self.current_token_start = self.position;
   }
@@ -53,20 +35,17 @@ impl Tokeniser {
   where
     F: FnOnce(String) -> TokenValue,
   {
-    let begin = self
-      .source_code
-      .code
+    let code = &self.source_code.code;
+    let begin = code
       .char_indices()
       .nth(self.current_token_start)
-      .map_or(self.source_code.code.len(), |e| e.0);
-    let end = self
-      .source_code
-      .code
+      .map_or(code.len(), |(e, _)| e);
+    let end = code
       .char_indices()
       .nth(self.position)
-      .map_or(self.source_code.code.len(), |e| e.0);
+      .map_or(code.len(), |(e, _)| e);
 
-    let value = value(self.source_code.code[begin..end].to_string());
+    let value = value(code[begin..end].to_string());
     Token::new(
       value,
       self
@@ -189,7 +168,7 @@ impl Tokeniser {
     self.start_token();
 
     while let Some(c) = self.get_char(self.position) {
-      if c.is_whitespace() || Tokeniser::is_punctuation(c) {
+      if c.is_whitespace() || check::is_punctuation(c) {
         break;
       }
       self.position += 1;
@@ -204,7 +183,7 @@ impl Tokeniser {
     self.position += 1;
 
     self.commit_token(|s| match s.chars().nth(0) {
-      Some(c) if Tokeniser::is_bracket(c) => TokenValue::Bracket(c),
+      Some(c) if check::is_bracket(c) => TokenValue::Bracket(c),
       _ => TokenValue::Error(s, ErrorCode::UnexpectedToken),
     })
   }
@@ -212,7 +191,7 @@ impl Tokeniser {
   pub fn consume_operator(self: &mut Self) -> Token {
     self.start_token();
 
-    let mut trie: &Trie = &OP_LIST;
+    let mut trie: &Trie = &check::OP_LIST;
 
     while let Some(c) = self.get_char(self.position) {
       trie = match trie.get(c) {
@@ -251,7 +230,7 @@ impl Tokeniser {
           '0'..='7' => 4,
           '.' => 5,
           'x' => 6,
-          c if Tokeniser::is_punctuation_or_whitespace(c) => {
+          c if check::is_punctuation_or_whitespace(c) => {
             break;
           }
           _ => panic!(),
@@ -260,7 +239,7 @@ impl Tokeniser {
         2 => match c {
           '0'..='9' => 2,
           '.' => 5,
-          c if Tokeniser::is_punctuation_or_whitespace(c) => {
+          c if check::is_punctuation_or_whitespace(c) => {
             break;
           }
           _ => {
@@ -278,7 +257,7 @@ impl Tokeniser {
         // 4 - reading octal
         4 => match c {
           '0'..='7' => 4,
-          c if Tokeniser::is_punctuation_or_whitespace(c) => {
+          c if check::is_punctuation_or_whitespace(c) => {
             break;
           }
           _ => {
@@ -289,7 +268,7 @@ impl Tokeniser {
         // 5 - reading float
         5 => match c {
           '0'..='9' => 5,
-          c if Tokeniser::is_punctuation_or_whitespace(c) => {
+          c if check::is_punctuation_or_whitespace(c) => {
             break;
           }
           _ => {
@@ -308,7 +287,7 @@ impl Tokeniser {
         },
         // 7 - read "0x0"
         7 => {
-          if Tokeniser::is_punctuation_or_whitespace(c) {
+          if check::is_punctuation_or_whitespace(c) {
             break;
           } else {
             error = true;
@@ -318,7 +297,7 @@ impl Tokeniser {
         // 8 - reading hex
         8 => match c {
           c if c.is_ascii_hexdigit() => 8,
-          c if Tokeniser::is_punctuation_or_whitespace(c) => {
+          c if check::is_punctuation_or_whitespace(c) => {
             break;
           }
           _ => {
@@ -364,11 +343,11 @@ impl Tokeniser {
       } else if c.is_whitespace() || c == '\n' {
         self.position += 1;
         continue;
-      } else if Tokeniser::is_bracket(c) {
+      } else if check::is_bracket(c) {
         self.consume_bracket()
       } else if c == '.' || c.is_ascii_hexdigit() {
         self.consume_number_or_dot()
-      } else if Tokeniser::is_punctuation(c) {
+      } else if check::is_punctuation(c) {
         self.consume_operator()
       } else {
         self.restore()
