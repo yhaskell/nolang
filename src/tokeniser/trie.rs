@@ -112,17 +112,7 @@ mod test {
 
     assert_eq!(trie.end, None);
     assert_eq!(
-      trie
-        .children
-        .get(&'a')
-        .unwrap()
-        .children
-        .get(&'b')
-        .unwrap()
-        .children
-        .get(&'d')
-        .unwrap()
-        .end,
+      trie.children.get(&'a').unwrap().children.get(&'b').unwrap().children.get(&'d').unwrap().end,
       Some(3)
     )
   }

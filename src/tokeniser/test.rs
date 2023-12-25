@@ -145,20 +145,14 @@ mod string_literal {
   fn errors_on_unfinished_string() {
     let tokens = tokenise("\"test");
 
-    assert_token_value!(
-      tokens[0],
-      error!("\"test", ErrorCode::UnterminatedStringLiteral)
-    );
+    assert_token_value!(tokens[0], error!("\"test", ErrorCode::UnterminatedStringLiteral));
   }
 
   #[test]
   fn errors_on_string_newline() {
     let tokens = tokenise("\"test\n\"test\"");
 
-    assert_token_value!(
-      tokens[0],
-      error!("\"test", ErrorCode::UnterminatedStringLiteral)
-    );
+    assert_token_value!(tokens[0], error!("\"test", ErrorCode::UnterminatedStringLiteral));
 
     assert_token_value!(tokens[1], string!("test"))
   }

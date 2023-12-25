@@ -13,10 +13,6 @@ impl std::fmt::Display for Location {
 
 impl Location {
   pub fn new(position: usize, line: usize, offset: usize) -> Location {
-    Location {
-      line,
-      offset,
-      position,
-    }
+    Location { line, offset, position }
   }
 }

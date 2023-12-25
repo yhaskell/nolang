@@ -36,24 +36,21 @@ impl Tokeniser {
     F: FnOnce(String) -> TokenValue,
   {
     let code = &self.source_code.code;
-    let begin = code
-      .char_indices()
-      .nth(self.current_token_start)
-      .map_or(code.len(), |(e, _)| e);
-    let end = code
-      .char_indices()
-      .nth(self.position)
-      .map_or(code.len(), |(e, _)| e);
+
+    let begin = match code.char_indices().nth(self.current_token_start) {
+      Some((c, _)) => c,
+      None => code.len(),
+    };
+    let end = match code.char_indices().nth(self.position) {
+      Some((c, _)) => c,
+      None => code.len(),
+    };
+
+    let start = self.source_code.to_location(self.current_token_start).unwrap();
+    let endl = self.source_code.to_location(self.position).unwrap();
 
     let value = value(code[begin..end].to_string());
-    Token::new(
-      value,
-      self
-        .source_code
-        .to_location(self.current_token_start)
-        .unwrap(),
-      self.source_code.to_location(self.position).unwrap(),
-    )
+    Token::new(value, start, endl)
   }
 
   pub fn consume_identifier(self: &mut Self) -> Token {
@@ -149,19 +146,14 @@ impl Tokeniser {
         break;
       }
     }
-
-    match state {
-      7 | 9 | 11 => {
-        self.commit_token(
-          |s| match parsers::parse_string(s.trim_matches('\"').to_string()) {
-            Ok(s) => TokenValue::StringLiteral(s),
-            Err(e) => TokenValue::Error(s, e),
-          },
-        )
-      }
-      10 => self.commit_token(|s| TokenValue::Error(s, ErrorCode::BrokenStringLiteral)),
-      _ => self.commit_token(|s| TokenValue::Error(s, ErrorCode::UnterminatedStringLiteral)),
-    }
+    self.commit_token(|s: String| match state {
+      7 | 9 | 11 => match parsers::parse_string(s.trim_matches('\"').to_string()) {
+        Ok(s) => TokenValue::StringLiteral(s),
+        Err(e) => TokenValue::Error(s, e),
+      },
+      10 => TokenValue::Error(s, ErrorCode::BrokenStringLiteral),
+      _ => TokenValue::Error(s, ErrorCode::UnterminatedStringLiteral),
+    })
   }
 
   fn restore(self: &mut Self) -> Token {

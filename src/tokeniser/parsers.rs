@@ -2,11 +2,7 @@ use std::str::FromStr;
 
 use super::token::{ErrorCode, TokenValue};
 
-pub fn parse_symbol_in_string(
-  s: &str,
-  pos: usize,
-  parse_unicode: bool,
-) -> Result<(char, usize), ErrorCode> {
+pub fn parse_symbol_in_string(s: &str, pos: usize, parse_unicode: bool) -> Result<(char, usize), ErrorCode> {
   match s.chars().nth(pos) {
     None => Err(ErrorCode::BrokenStringLiteral),
     Some('\\') => match s.chars().nth(pos + 1) {
@@ -52,11 +48,7 @@ pub fn parse_string(s: String) -> Result<String, ErrorCode> {
 }
 
 pub fn parse_int(s: String, radix: u32) -> TokenValue {
-  let src = if radix == 16 {
-    s.trim_start_matches("0x")
-  } else {
-    &s
-  };
+  let src = if radix == 16 { s.trim_start_matches("0x") } else { &s };
 
   match u128::from_str_radix(src, radix) {
     Ok(n) => TokenValue::IntLiteral(n),

@@ -47,21 +47,13 @@ impl SourceCode {
       Err(n) => n,
     };
 
-    let lb = if line == 0 {
-      0
-    } else {
-      self.line_breaks[line - 1]
-    };
+    let lb = if line == 0 { 0 } else { self.line_breaks[line - 1] };
 
     Some(Location::new(position, line, position - lb))
   }
 
   pub fn get_line(&self, line: usize) -> Option<String> {
-    let line_start = if line == 0 {
-      0
-    } else {
-      *self.line_breaks.get(line - 1)?
-    };
+    let line_start = if line == 0 { 0 } else { *self.line_breaks.get(line - 1)? };
     let line_end = self.line_breaks.get(line).map_or(self.code.len(), |e| *e);
 
     Some(self.code[line_start..line_end].trim().to_string())
