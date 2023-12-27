@@ -24,9 +24,9 @@ impl Trie {
   pub fn from_op_list() -> Trie {
     Trie::from_list(&[
       "=", "==", "!=", ">", "<", ">=", "<=", // comparison
-      "+", "-", "", "/", "%", // base arithmetic
+      "+", "-", "*", "/", "%", // base arithmetic
       "++", "--", // increment & decrement
-      "+=", "-=", "=", "/=", "%=", // shorthand arithmetic
+      "+=", "-=", "*=", "/=", "%=", // shorthand arithmetic
       "<<", ">>", "&", "|", "^", "~", // bit manipulation
       "&&", "||", "!", // logical
       "|>", "?", ":", "::", // to be determined if we need those
