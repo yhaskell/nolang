@@ -1,4 +1,4 @@
-use super::{token::ErrorCode, token::TokenValue, tokenise};
+use super::{from_string, token::ErrorCode, token::TokenValue};
 
 /// Returns Error token
 ///
@@ -101,7 +101,7 @@ macro_rules! test {
   ( $name: ident, $code: expr, { $($index: expr => $token: expr),* } ) => {
     #[test]
     fn $name() {
-      let tokens = tokenise($code);
+      let tokens = from_string($code);
 
       $(
       assert_eq!(tokens[$index].value, $token);
@@ -111,7 +111,7 @@ macro_rules! test {
   ( $name: ident, $code: expr, $len: expr, { $($index: expr => $token: expr),* } ) => {
     #[test]
     fn $name() {
-      let tokens = tokenise($code);
+      let tokens = from_string($code);
 
       assert_eq!($len, tokens.len());
 

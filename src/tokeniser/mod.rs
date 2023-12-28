@@ -13,9 +13,14 @@ pub use token::{ErrorCode, Token, TokenValue};
 
 use self::tokeniser::Tokeniser;
 
-pub fn tokenise(code: &str) -> Vec<Token> {
-  let source_code = SourceCode::new(code.to_string());
+pub fn from_source_code<'a>(source_code: &'a SourceCode) -> Vec<Token> {
   let mut tokeniser = Tokeniser::new(source_code);
 
   tokeniser.parse()
+}
+
+pub fn from_string(code: &str) -> Vec<Token> {
+  let source_code = SourceCode::new(code.to_string());
+
+  from_source_code(&source_code)
 }

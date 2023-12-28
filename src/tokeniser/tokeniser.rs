@@ -7,14 +7,14 @@ use super::{
   Token,
 };
 
-pub struct Tokeniser {
-  source_code: SourceCode,
+pub struct Tokeniser<'a> {
+  source_code: &'a SourceCode,
   position: usize,
   current_token_start: usize,
 }
 
-impl Tokeniser {
-  pub fn new(source_code: SourceCode) -> Tokeniser {
+impl<'a> Tokeniser<'a> {
+  pub fn new(source_code: &SourceCode) -> Tokeniser {
     Tokeniser {
       source_code,
       position: 0,
@@ -22,7 +22,7 @@ impl Tokeniser {
     }
   }
 
-  fn start_token(self: &mut Self) {
+  fn start_token(&mut self) {
     self.current_token_start = self.position;
   }
 
@@ -30,7 +30,7 @@ impl Tokeniser {
     self.source_code.code.chars().nth(position)
   }
 
-  fn commit_token<F>(self: &mut Self, value: F) -> Token
+  fn commit_token<F>(&mut self, value: F) -> Token
   where
     F: FnOnce(String) -> TokenValue,
   {
@@ -55,7 +55,7 @@ impl Tokeniser {
     Token::new(value, start, end)
   }
 
-  fn consume_identifier(self: &mut Self) -> Token {
+  fn consume_identifier(&mut self) -> Token {
     self.start_token();
     while let Some(c) = self.get_char(self.position) {
       if c.is_alphanumeric() || c == '_' {
@@ -68,7 +68,7 @@ impl Tokeniser {
     self.commit_token(|s| TokenValue::Identifier(s))
   }
 
-  fn consume_char_literal(self: &mut Self) -> Token {
+  fn consume_char_literal(&mut self) -> Token {
     self.start_token();
     let mut closed = false;
     self.position += 1;
@@ -110,7 +110,7 @@ impl Tokeniser {
     })
   }
 
-  fn consume_string_literal(self: &mut Self) -> Token {
+  fn consume_string_literal(&mut self) -> Token {
     macro_rules! select {
       ($ch: expr, $success: literal, $failure: literal) => {
         if $ch == '"' {
@@ -154,7 +154,7 @@ impl Tokeniser {
     })
   }
 
-  fn restore(self: &mut Self) -> Token {
+  fn restore(&mut self) -> Token {
     self.start_token();
 
     while let Some(c) = self.get_char(self.position) {
@@ -167,7 +167,7 @@ impl Tokeniser {
     self.commit_token(|s| TokenValue::Error(s, ErrorCode::UnexpectedToken))
   }
 
-  fn consume_bracket(self: &mut Self) -> Token {
+  fn consume_bracket(&mut self) -> Token {
     self.start_token();
 
     self.position += 1;
@@ -178,7 +178,7 @@ impl Tokeniser {
     })
   }
 
-  fn consume_operator(self: &mut Self) -> Token {
+  fn consume_operator(&mut self) -> Token {
     self.start_token();
 
     let mut trie: &Trie = &check::OP_LIST;
@@ -202,7 +202,7 @@ impl Tokeniser {
     })
   }
 
-  fn consume_number_or_dot(self: &mut Self) -> Token {
+  fn consume_number_or_dot(&mut self) -> Token {
     self.start_token();
 
     let mut state: u8 = 0;
@@ -322,7 +322,7 @@ impl Tokeniser {
     })
   }
 
-  pub fn parse(self: &mut Self) -> Vec<Token> {
+  pub fn parse(&mut self) -> Vec<Token> {
     let mut tokens = Vec::new();
 
     while let Some(c) = self.get_char(self.position) {
