@@ -3,7 +3,8 @@ mod literal;
 mod parser;
 
 use crate::{source_code, tokeniser};
-pub use ast::Ast;
+pub use ast::{Ast, ErrorCode, Value};
+pub use literal::Literal;
 pub use parser::from_tokens;
 
 pub fn from_string(code: &str) -> Ast {
