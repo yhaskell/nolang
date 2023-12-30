@@ -264,4 +264,5 @@ mod test {
   test!(multiplication_with_addition, "a * (b + c)");
   test!(multiplication_with_integer_addition, "2 * (2 + 3)");
   test!(addition_multiple, "a + b * c + d");
+  test!(incomplete_addition, "a +");
 }
