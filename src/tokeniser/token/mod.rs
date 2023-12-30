@@ -1,5 +1,8 @@
 use std::fmt::Display;
 
+#[cfg(test)]
+pub mod generators;
+
 use crate::source_code::Location;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -60,5 +63,22 @@ impl Display for TokenValue {
 impl Token {
   pub fn new(value: TokenValue, start: Location, end: Location) -> Token {
     Token { value, start, end }
+  }
+
+  pub fn is_identifier(&self) -> bool {
+    match self.value {
+      TokenValue::Identifier(_) => true,
+      _ => false,
+    }
+  }
+
+  pub fn is_literal(&self) -> bool {
+    match self.value {
+      TokenValue::CharLiteral(_)
+      | TokenValue::StringLiteral(_)
+      | TokenValue::IntLiteral(_)
+      | TokenValue::FloatLiteral(_) => true,
+      _ => false,
+    }
   }
 }

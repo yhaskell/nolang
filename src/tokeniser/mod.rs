@@ -11,6 +11,9 @@ use crate::source_code::SourceCode;
 
 pub use token::{ErrorCode, Token, TokenValue};
 
+#[cfg(test)]
+pub use token::generators;
+
 use self::tokeniser::Tokeniser;
 
 pub fn from_source_code<'a>(source_code: &'a SourceCode) -> Vec<Token> {
