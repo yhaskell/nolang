@@ -231,7 +231,7 @@ impl<'a> Tokeniser<'a> {
         2 => match c {
           '0'..='9' => 2,
           '.' => 5,
-          c if check::is_punctuation_or_whitespace(c) => {
+          c if check::is_bracket(c) || check::is_punctuation_or_whitespace(c) => {
             break;
           }
           _ => {
