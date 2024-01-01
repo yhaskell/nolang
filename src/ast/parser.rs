@@ -1,3 +1,5 @@
+use std::cmp;
+
 use crate::tokeniser::{Token, TokenValue};
 
 use super::ast::{Ast, ErrorCode, Value};
@@ -77,8 +79,12 @@ impl Parser {
   }
 
   fn emit_node(&mut self, value: Value, advance: bool) -> Ast {
+    let max_index = self.tokens.len() - 1;
     let start = self.pstack.pop().unwrap();
     let end = if advance { self.position } else { self.position - 1 };
+
+    let start = cmp::min(start, max_index);
+    let end = cmp::min(end, max_index);
 
     if advance {
       self.position += 1;
@@ -264,5 +270,5 @@ mod test {
   test!(multiplication_with_addition, "a * (b + c)");
   test!(multiplication_with_integer_addition, "2 * (2 + 3)");
   test!(addition_multiple, "a + b * c + d");
-  test!(incomplete_addition, "a +");
+  test!(incomplete_addition, "a + Expected");
 }
